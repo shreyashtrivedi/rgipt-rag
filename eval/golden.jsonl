@@ -1,0 +1,34 @@
+{"q": "Who is the director of RGIPT?", "urls": ["/en/page/rgipt-director"], "must": ["Hirani"]}
+{"q": "Where is the main campus of RGIPT located?", "urls": ["/en/page/contact-us1", "/en/page/about-rgipt", "/en/page/rgipt-director", "/en/page/registrar"], "must": ["Jais", "Amethi"]}
+{"q": "What is the PIN code of the Jais campus?", "urls": ["/en/page/contact-us1", "/en/page/rgipt-director", "/en/page/registrar"], "must": ["229 ?304"]}
+{"q": "Where is the Bengaluru campus of RGIPT?", "urls": ["/en/page/contact-us1"], "must": ["Hosakote"]}
+{"q": "In which state is the Sivasagar campus?", "urls": ["/en/page/contact-us1"], "must": ["Assam"]}
+{"q": "Who is the Dean of Academic Affairs?", "urls": ["/en/page/dean-academic-affairs"], "must": ["Arshad Aijaz"]}
+{"q": "Who is the Dean of Students' Affairs?", "urls": ["/en/page/students-affairs"], "must": ["Koushik Guha Biswas"]}
+{"q": "What email should I contact for B.Tech admission queries?", "urls": ["/en/page/contact-us1"], "must": ["btech_admission@rgipt\\.ac\\.in"]}
+{"q": "How can I contact the training and placement cell?", "urls": ["/en/page/contact-us1"], "must": ["placements@rgipt\\.ac\\.in"]}
+{"q": "What is the email address of the Registrar?", "urls": ["/en/page/contact-us1", "/en/page/registrar"], "must": ["registrar@rgipt\\.ac\\.in"]}
+{"q": "Which entrance exam is used for B.Tech admission?", "urls": ["/en/page/bachelor-of-technology"], "must": ["JEE[ -]Advanced"]}
+{"q": "Which B.Tech programmes does RGIPT offer?", "urls": ["/en/page/bachelor-of-technology", "/en/page/programmes"], "must": ["Petroleum Engineering", "Mathematics and Computing"]}
+{"q": "Which campus offers the MBA programme?", "urls": ["/en/page/programmes"], "must": ["Bengaluru"]}
+{"q": "Which campus offers the diploma programme?", "urls": ["/en/page/programmes"], "must": ["Sivasagar"]}
+{"q": "Which ministry set up RGIPT?", "urls": ["/en/page/about-rgipt"], "must": ["Petroleum and Natural Gas"]}
+{"q": "Which oil companies co-promote RGIPT?", "urls": ["/en/page/about-rgipt", "/en/page/overview"], "must": ["ONGC|Oil and Natural Gas", "Indian Oil|IOCL"]}
+{"q": "Is RGIPT an Institution of National Importance?", "urls": ["/en/page/about-rgipt", "/en/page/study-in-india"], "must": ["National Importance"]}
+{"q": "What is the vision of RGIPT?", "urls": ["/en/page/vision-and-mission"], "must": ["fountainhead"]}
+{"q": "What is the family income limit for the merit-cum-means scholarship?", "urls": ["/en/page/academic-scholarship-financial-assistant"], "must": ["5 ?lakh"]}
+{"q": "What CPI do I need to keep receiving the merit-cum-means scholarship?", "urls": ["/en/page/academic-scholarship-financial-assistant"], "must": ["6\\.5"]}
+{"q": "How long is the RIPE summer research internship?", "urls": ["/en/page/RIPE-26", "/en/page/summer-training"], "must": ["six weeks|6 weeks|6-week|six-week"]}
+{"q": "Is there a fee for the RIPE summer internship?", "urls": ["/en/page/RIPE-26", "/en/page/summer-training"], "must": ["no fee|free|not charge|no charge"]}
+{"q": "What is the nearest airport to RGIPT Jais?", "urls": ["/en/page/freshers-faq"], "must": ["Lucknow"]}
+{"q": "Which bank has a branch on campus?", "urls": ["/en/page/freshers-faq"], "must": ["Bank of Baroda"]}
+{"q": "What do I need to bring for my hostel room?", "urls": ["/en/page/freshers-faq"], "must": ["bedding"]}
+{"q": "Can my parents stay with me in the hostel?", "urls": ["/en/page/freshers-faq"], "must": ["not allowed|cannot|can't|own (stay )?arrangements"]}
+{"q": "Do the hostels have internet?", "urls": ["/en/page/hostels-", "/en/page/freshers-faq"], "must": ["Wi-?Fi"]}
+{"q": "What software does the central library use?", "urls": ["/article/en/central-library"], "must": ["SOUL"]}
+{"q": "How many books does the RGIPT library have?", "urls": ["/article/en/central-library"], "must": ["17,?510"]}
+{"q": "How many foreign students can join B.Tech through Study in India?", "urls": ["/en/page/study-in-india"], "must": ["\\b0?4\\b|four"]}
+{"q": "What is the eligibility for M.Tech admission?", "urls": ["/pdf/PG-Ordinance_Final_17-07-2020.pdf", "Statute_Ordinance-2017.pdf"], "must": ["GATE"]}
+{"q": "What is the B.Tech semester fee for 2026-27?", "urls": ["/en/page/semester-fee-structure", "/en/page/semester-fee-structures"], "refuse": true}
+{"q": "What was the highest placement package last year?", "urls": ["/en/page/rgipt-placement-status"], "refuse": true}
+{"q": "What is the capital of France?", "urls": [], "refuse": true}
