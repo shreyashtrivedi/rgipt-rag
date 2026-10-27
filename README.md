@@ -1,0 +1,47 @@
+# RGIPT Assistant
+
+A question-answering chatbot for the [RGIPT](https://rgipt.ac.in) website, built with
+retrieval-augmented generation (RAG): it searches the crawled website content and has
+Gemini answer only from what it found, with source links.
+
+```
+crawl.py → backend/ingest.py → backend/retrieval.py → backend/llm.py → backend/main.py
+(scrape)    (chunk + embed)      (hybrid search)        (Gemini answer)   (API + chat UI)
+```
+
+## Setup
+
+```
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+copy .env.example .env          # then put your Gemini API key in .env
+```
+
+## Run
+
+```
+.venv\Scripts\python crawl.py               # 1. download pages + PDFs into data/
+.venv\Scripts\python backend\ingest.py      # 2. build chunks.jsonl + chroma_db/
+.venv\Scripts\uvicorn main:app --app-dir backend --reload   # 3. start the server
+```
+
+Open http://127.0.0.1:8000.
+
+Each step can also be tested on its own:
+
+```
+.venv\Scripts\python backend\retrieval.py "who is the director?"   # show retrieved chunks
+.venv\Scripts\python backend\llm.py "who is the director?"         # full answer in the terminal
+```
+
+## Configuration (`.env`)
+
+| Variable | Default | |
+|---|---|---|
+| `GEMINI_API_KEY` | — | required |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | falls back to `gemini-3.5-flash`, then `gemini-2.5-flash` if busy |
+
+## Known limitations
+
+- About 285 of the 371 crawled PDFs are scanned images; only their titles are searchable (no OCR yet).
+- Answers are only as current as the last crawl.
