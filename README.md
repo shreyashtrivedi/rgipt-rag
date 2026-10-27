@@ -39,7 +39,17 @@ Each step can also be tested on its own:
 | Variable | Default | |
 |---|---|---|
 | `GEMINI_API_KEY` | — | required |
-| `GEMINI_MODEL` | `gemini-3.8-flash` | falls back to `gemini-3.5-flash`, then `gemini-2.5-flash` if busy |
+| `GEMINI_MODEL` | `gemini-3.5-flash` | falls back to `gemini-3.5-flash-lite`, then `gemini-3.1-flash-lite` if busy or rate-limited |
+
+The Gemini free tier has small per-minute and per-day request limits (e.g. only 20/day for
+`gemini-3.8-flash`), so a full `eval.py --answers` run uses a noticeable share of the daily quota.
+
+## Evaluation
+
+```
+.venv\Scripts\python eval\eval.py             # retrieval only: hit@k and MRR, no API calls
+.venv\Scripts\python eval\eval.py --answers   # also checks the generated answers
+```
 
 ## Known limitations
 

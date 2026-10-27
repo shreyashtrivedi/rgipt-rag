@@ -11,9 +11,11 @@ from google.genai import types
 from ingest import ROOT
 
 load_dotenv(ROOT / ".env")
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-# Tried in order when the model above has a server error (5xx) or is rate-limited (429)
-FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash"]
+# gemini-3.8-flash is newer but its free tier allows only 20 requests/day.
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+# Tried in order when the model above has a server error (5xx) or is rate-limited (429).
+# Each model has its own free-tier quota.
+FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
 
 SYSTEM_PROMPT = """You are the help assistant for RGIPT (Rajiv Gandhi Institute of Petroleum
 Technology, Jais, Amethi). You answer questions from students, applicants and visitors.

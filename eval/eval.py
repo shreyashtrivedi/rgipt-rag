@@ -41,13 +41,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--answers", action="store_true", help="also generate and check answers (uses the Gemini API)")
     ap.add_argument("-k", type=int, default=6, help="chunks retrieved per question (default 6, same as the app)")
-    ap.add_argument("--delay", type=float, default=2.0, help="seconds between Gemini calls, to stay under rate limits")
+    ap.add_argument("--delay", type=float, default=6.0,
+                    help="seconds between Gemini calls, to stay under free-tier per-minute limits")
     args = ap.parse_args()
 
     items = [json.loads(l) for l in open(GOLDEN, encoding="utf-8") if l.strip()]
     retriever = Retriever()
     if args.answers:
         from llm import answer
+        from google.genai.errors import APIError
 
     hits = rr = answered = correct = 0
     retrieval_items = [it for it in items if it["urls"]]
@@ -67,8 +69,11 @@ def main():
         if args.answers:
             if answered:
                 time.sleep(args.delay)
-            text = answer(item["q"], chunks)["answer"]
-            ok, why = check_answer(item, text)
+            try:
+                text = answer(item["q"], chunks)["answer"]
+                ok, why = check_answer(item, text)
+            except APIError as e:   # quota/outage: record it and keep going
+                text, ok, why = "", False, f"API error {e.code}"
             answered += 1
             correct += ok
             line += f"  answer: {'ok' if ok else 'FAIL'}"

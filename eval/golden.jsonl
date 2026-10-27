@@ -8,7 +8,7 @@
 {"q": "What email should I contact for B.Tech admission queries?", "urls": ["/en/page/contact-us1"], "must": ["btech_admission@rgipt\\.ac\\.in"]}
 {"q": "How can I contact the training and placement cell?", "urls": ["/en/page/contact-us1"], "must": ["placements@rgipt\\.ac\\.in"]}
 {"q": "What is the email address of the Registrar?", "urls": ["/en/page/contact-us1", "/en/page/registrar"], "must": ["registrar@rgipt\\.ac\\.in"]}
-{"q": "Which entrance exam is used for B.Tech admission?", "urls": ["/en/page/bachelor-of-technology"], "must": ["JEE[ -]Advanced"]}
+{"q": "Which entrance exam is used for B.Tech admission?", "urls": ["/en/page/bachelor-of-technology"], "must": ["JEE\\)?[ -]Advanced"]}
 {"q": "Which B.Tech programmes does RGIPT offer?", "urls": ["/en/page/bachelor-of-technology", "/en/page/programmes"], "must": ["Petroleum Engineering", "Mathematics and Computing"]}
 {"q": "Which campus offers the MBA programme?", "urls": ["/en/page/programmes"], "must": ["Bengaluru"]}
 {"q": "Which campus offers the diploma programme?", "urls": ["/en/page/programmes"], "must": ["Sivasagar"]}
