@@ -3,4 +3,4 @@
 data/raw/
 __pycache__/
 node_modules/
-chroma_db/
+chroma_db/data/
