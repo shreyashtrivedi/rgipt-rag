@@ -68,7 +68,10 @@ def main():
             print(f"Stopped: API error {e.code} ({len(todo) - i + 1} left). "
                   f"Re-run later to continue -- finished PDFs are kept.")
             break
-        text = tidy(text)
+        text = tidy(text or "")
+        if not text.strip():   # model returned nothing (blocked/overloaded): leave it for a re-run
+            print(f"  [{i}/{len(todo)}] empty response, will retry next run: {d['label'][:60]}")
+            continue
         (OCR_DIR / f"{d['id']}.md").write_text(text, encoding="utf-8")
         print(f"  [{i}/{len(todo)}] {len(text):6} chars  {d['label'][:70]}", flush=True)
         time.sleep(4)   # stay under the free tier's per-minute limit

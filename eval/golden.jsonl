@@ -29,6 +29,6 @@
 {"q": "How many books does the RGIPT library have?", "urls": ["/article/en/central-library"], "must": ["17,?510"]}
 {"q": "How many foreign students can join B.Tech through Study in India?", "urls": ["/en/page/study-in-india"], "must": ["\\b0?4\\b|four"]}
 {"q": "What is the eligibility for M.Tech admission?", "urls": ["/pdf/PG-Ordinance_Final_17-07-2020.pdf", "Statute_Ordinance-2017.pdf"], "must": ["GATE"]}
-{"q": "What is the B.Tech semester fee for 2026-27?", "urls": ["/en/page/semester-fee-structure", "/en/page/semester-fee-structures"], "refuse": true}
+{"q": "What is the B.Tech semester fee for 2026-27?", "urls": ["202605291804170186FS%204-Year%20BTech%20and%205%20Year%20Integrated%20Dual%20Degree%20AY%202026-27.pdf", "/en/page/semester-fee-structures"], "must": ["1,00,000|1,37,000|1,52,000"]}
 {"q": "What was the highest placement package last year?", "urls": ["/en/page/rgipt-placement-status"], "refuse": true}
 {"q": "What is the capital of France?", "urls": [], "refuse": true}

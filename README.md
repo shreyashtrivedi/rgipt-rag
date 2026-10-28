@@ -56,4 +56,6 @@ The Gemini free tier has small per-minute and per-day request limits (e.g. only 
 
 - About 285 of the 371 crawled PDFs are scanned images. `ocr.py` transcribes them with Gemini
   (one API call per PDF, most useful first); any not yet transcribed are indexed by title only.
+  Gemini occasionally returns nothing for a PDF; those are not saved, so re-running `ocr.py`
+  retries them.
 - Answers are only as current as the last crawl.
