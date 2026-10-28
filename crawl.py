@@ -32,6 +32,11 @@ SKIP = re.compile(
 BAD_EXT = (".jpg", ".jpeg", ".png", ".gif", ".css", ".js", ".docx", ".doc",
            ".xlsx", ".xls", ".zip", ".mp4", ".ico", ".svg")
 
+# The site serves these instead of a 404; indexing them only adds noise
+NO_CONTENT = re.compile(r"^(Global Page Error|Content not available)", re.I)
+LABEL_SUFFIX = re.compile(r"\s*(\[ ?News ?\]|\[?view\]?)\s*$", re.I)   # "... View", "... [ News ]"
+TITLE_PREFIX = re.compile(r"^Official Website of Rajiv Gandhi Institute.*?/\s*", re.I)
+
 
 def normalize(url):
     p = urlparse(url)
@@ -52,17 +57,42 @@ def wanted(url):
         ("/en/page/", "/en/news", "/en/archivednews", "/article/en/"))
 
 
+def text_of(tag):
+    return " ".join(tag.get_text(" ", strip=True).split())
+
+
+def link_label(a, section):
+    """Table-row text if the link is in a table, else the link text.
+    A row with links to several files ("Registration Forms | For UG | For PG") gets the other
+    links' text removed, and a vague label ("Undergraduate") is prefixed with the page's section
+    ("Academics / Ordinances: Undergraduate")."""
+    row = a.find_parent("tr")
+    if row is None:
+        label = text_of(a)
+    else:
+        label = text_of(row)
+        for other in row.find_all("a", href=True):
+            if other["href"] != a["href"] and text_of(other):
+                label = label.replace(text_of(other), " ", 1)
+    label = LABEL_SUFFIX.sub("", " ".join(label.split()))
+    if len(label.split()) <= 2 and section:
+        label = f"{section}: {label}" if label else section
+    return label[:200]
+
+
 def links_in(html, base_url):
-    """Yield (url, label). Label = table-row text if the link is in a table, else the link text.
-    The site uses <base href="https://rgipt.ac.in">, so relative links resolve from the site root."""
+    """Yield (url, label). The site uses <base href="https://rgipt.ac.in">, so relative links
+    resolve from the site root."""
     soup = BeautifulSoup(html, "lxml")
+    title = (soup.title.string or "") if soup.title else ""
+    # "Official Website of ... / Academics / Ordinances" -> "Academics / Ordinances"
+    section = " / ".join(TITLE_PREFIX.sub("", title).split(" / ")[-2:]).strip() \
+        if TITLE_PREFIX.match(title) else ""
     for a in soup.find_all("a", href=True):
         h = a["href"].strip()
         if h.lower().startswith(("javascript", "mailto", "tel:", "#")):
             continue
-        holder = a.find_parent("tr") or a
-        label = " ".join(holder.get_text(" ", strip=True).split())[:200]
-        yield normalize(urljoin(BASE + "/", h)), label
+        yield normalize(urljoin(BASE + "/", h)), link_label(a, section)
 
 
 def fetch(url):
@@ -115,10 +145,16 @@ while queue and len(docs) < MAX_DOCS:
         soup = BeautifulSoup(html, "lxml")
         for t in soup(["script", "style", "nav", "footer", "header", "noscript"]):
             t.decompose()
-        main = soup.find(id="main-content") or soup.body or soup
+        # Campus home pages (e.g. /en/page/bengaluru) have several #main-content blocks
+        parts = [m.get_text("\n", strip=True) for m in soup.find_all(id="main-content")]
+        text = "\n".join(dict.fromkeys(p for p in parts if p)) if parts else \
+            (soup.body or soup).get_text("\n", strip=True)
+        if not text or NO_CONTENT.match(text):   # error page, or images/map only
+            errors.append((url, "no text content"))
+            continue
         docs.append({"id": key, "url": url, "type": "html", "label": label, "parent": parent,
                      "title": (soup.title.string or "").strip() if soup.title else "",
-                     "text": main.get_text("\n", strip=True)})
+                     "text": text})
         if depth < MAX_DEPTH:
             for l, lab in links_in(html, url):
                 if wanted(l) and l not in seen:

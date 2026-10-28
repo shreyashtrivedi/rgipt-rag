@@ -27,6 +27,9 @@ RRF_K = 60        # standard RRF constant; higher = flatter weighting across ran
 # worth the latency yet. Revisit if the eval set grows and hit@6 drops.
 RERANK_MODEL = None
 RERANK_POOL = 15  # how many fused candidates the reranker re-scores
+# At most this many chunks from one URL in the results, so a long document whose chunks all
+# match the query (e.g. a placement *policy* PDF) can't crowd out the page with the answer.
+MAX_PER_URL = 2
 
 STOPWORDS = set("""a an the is are was were be been of in on at to for from by with and or
 not what which who whom how when where why do does did can could i me my we our you your
@@ -66,13 +69,26 @@ class Retriever:
             for rank, cid in enumerate(ranked):
                 fused[cid] = fused.get(cid, 0) + 1 / (RRF_K + rank + 1)
         if not self.reranker:
-            best = sorted(fused, key=fused.get, reverse=True)[:k]
+            best = self.cap_per_url(sorted(fused, key=fused.get, reverse=True), k)
             return [{**self.by_id[cid], "score": round(fused[cid], 4)} for cid in best]
 
         pool = sorted(fused, key=fused.get, reverse=True)[:self.pool]
-        scores = self.reranker.predict([(query, self.by_id[cid]["text"]) for cid in pool])
-        ranked = sorted(zip(pool, scores), key=lambda p: p[1], reverse=True)[:k]
-        return [{**self.by_id[cid], "score": round(float(s), 4)} for cid, s in ranked]
+        scores = dict(zip(pool, self.reranker.predict(
+            [(query, self.by_id[cid]["text"]) for cid in pool])))
+        best = self.cap_per_url(sorted(pool, key=scores.get, reverse=True), k)
+        return [{**self.by_id[cid], "score": round(float(scores[cid]), 4)} for cid in best]
+
+    def cap_per_url(self, ranked_ids, k):
+        """The first k ids, skipping any beyond MAX_PER_URL from the same URL."""
+        best, per_url = [], {}
+        for cid in ranked_ids:
+            url = self.by_id[cid]["url"]
+            if per_url.get(url, 0) < MAX_PER_URL:
+                per_url[url] = per_url.get(url, 0) + 1
+                best.append(cid)
+                if len(best) == k:
+                    break
+        return best
 
 
 if __name__ == "__main__":
