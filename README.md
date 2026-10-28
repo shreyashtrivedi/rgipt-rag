@@ -5,8 +5,8 @@ retrieval-augmented generation (RAG): it searches the crawled website content an
 Gemini answer only from what it found, with source links.
 
 ```
-crawl.py → backend/ingest.py → backend/retrieval.py → backend/llm.py → backend/main.py
-(scrape)    (chunk + embed)      (hybrid search)        (Gemini answer)   (API + chat UI)
+crawl.py → backend/ocr.py → backend/ingest.py → backend/retrieval.py → backend/llm.py → backend/main.py
+(scrape)    (scanned PDFs)   (chunk + embed)      (hybrid search)        (Gemini answer)   (API + chat UI)
 ```
 
 ## Setup
@@ -21,8 +21,9 @@ copy .env.example .env          # then put your Gemini API key in .env
 
 ```
 .venv\Scripts\python crawl.py               # 1. download pages + PDFs into data/
-.venv\Scripts\python backend\ingest.py      # 2. build chunks.jsonl + chroma_db/
-.venv\Scripts\uvicorn main:app --app-dir backend --reload   # 3. start the server
+.venv\Scripts\python backend\ocr.py         # 2. transcribe scanned PDFs with Gemini (resumable)
+.venv\Scripts\python backend\ingest.py      # 3. build chunks.jsonl + chroma_db/
+.venv\Scripts\uvicorn main:app --app-dir backend --reload   # 4. start the server
 ```
 
 Open http://127.0.0.1:8000.
@@ -53,5 +54,6 @@ The Gemini free tier has small per-minute and per-day request limits (e.g. only 
 
 ## Known limitations
 
-- About 285 of the 371 crawled PDFs are scanned images; only their titles are searchable (no OCR yet).
+- About 285 of the 371 crawled PDFs are scanned images. `ocr.py` transcribes them with Gemini
+  (one API call per PDF, most useful first); any not yet transcribed are indexed by title only.
 - Answers are only as current as the last crawl.
