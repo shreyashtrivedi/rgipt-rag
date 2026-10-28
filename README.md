@@ -28,6 +28,14 @@ copy .env.example .env          # then put your Gemini API key in .env
 
 Open http://127.0.0.1:8000.
 
+Or with Docker (after steps 1–3, since the image ships the built index, not the raw data):
+
+```
+docker compose up --build       # then open http://localhost:8000
+```
+
+The API key is read from `.env` when the container starts; it is never copied into the image.
+
 Each step can also be tested on its own:
 
 ```

@@ -1,0 +1,8 @@
+.env
+.venv/
+.git/
+**/__pycache__/
+eval/
+# Only the built index is needed at run time, not the 350 MB of raw downloads
+data/**
+!data/processed/chunks.jsonl
