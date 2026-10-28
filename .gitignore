@@ -1,6 +1,6 @@
 .venv/
 .env
-data/raw/
+data/
 __pycache__/
 node_modules/
-chroma_db/data/
+chroma_db/
