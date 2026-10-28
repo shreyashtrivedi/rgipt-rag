@@ -1,13 +1,14 @@
 """Build the search indexes from the crawled data.
 
-    python backend/ingest.py
+    python backend/ingest.py                  # with generated search questions (questions.py)
+    python backend/ingest.py --no-questions   # no API calls
 
 Reads  data/processed/pages.json + data/raw/*.pdf
 Writes data/processed/chunks.jsonl  (all chunks, used for BM25 keyword search)
        chroma_db/                   (vector index, used for semantic search)
 Safe to re-run: the Chroma collection is rebuilt from scratch each time.
 """
-import re, json, hashlib
+import re, sys, json, hashlib
 from pathlib import Path
 
 import pymupdf
@@ -107,10 +108,20 @@ def build_chunks(docs):
     return chunks, stats
 
 
+def index_text(chunk):
+    """What search matches against: the chunk text plus any generated questions.
+    (The answering model only ever sees chunk["text"].)"""
+    qs = chunk.get("questions")
+    return chunk["text"] + ("\nQuestions answered: " + " ".join(qs) if qs else "")
+
+
 def main():
     docs = json.load(open(PAGES, encoding="utf-8"))
     chunks, stats = build_chunks(docs)
     print(f"{len(docs)} docs -> {len(chunks)} chunks  {stats}")
+    if "--no-questions" not in sys.argv:
+        from questions import add_questions   # imported here: questions.py imports this module
+        add_questions(chunks)
 
     with open(CHUNKS, "w", encoding="utf-8") as f:
         for c in chunks:
@@ -119,7 +130,7 @@ def main():
 
     print(f"embedding with {EMBED_MODEL} (first run downloads the model)...")
     model = SentenceTransformer(EMBED_MODEL)
-    vectors = model.encode([c["text"] for c in chunks], batch_size=32,
+    vectors = model.encode([index_text(c) for c in chunks], batch_size=32,
                            normalize_embeddings=True, show_progress_bar=True)
 
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))

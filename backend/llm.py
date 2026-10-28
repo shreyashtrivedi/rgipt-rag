@@ -80,21 +80,27 @@ def format_context(chunks):
     return "\n\n---\n\n".join(blocks)
 
 
+def generate(prompt, system, model=MODEL, temperature=0.2, json_output=False):
+    """One Gemini call, falling back to FALLBACK_MODELS when `model` is busy or rate-limited."""
+    config = types.GenerateContentConfig(
+        system_instruction=system, temperature=temperature,
+        response_mime_type="application/json" if json_output else None)
+    models = [model] + [m for m in FALLBACK_MODELS if m != model]
+    for i, m in enumerate(models):
+        try:
+            resp = client().models.generate_content(model=m, contents=prompt, config=config)
+            return (resp.text or "").strip()
+        except genai.errors.APIError as e:
+            if not (e.code == 429 or e.code >= 500) or i == len(models) - 1:
+                raise
+            print(f"  {m} unavailable ({e.code}), trying {models[i + 1]}", file=sys.stderr)
+
+
 def answer(question, chunks):
     """Returns {"answer": str, "sources": [{"n", "title", "url", "page"}]} --
     sources are only the passages the model actually cited."""
     prompt = f"Context passages:\n\n{format_context(chunks)}\n\nQuestion: {question}"
-    config = types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, temperature=0.2)
-    models = [MODEL] + [m for m in FALLBACK_MODELS if m != MODEL]
-    for i, model in enumerate(models):
-        try:
-            resp = client().models.generate_content(model=model, contents=prompt, config=config)
-            break
-        except genai.errors.APIError as e:
-            if not (e.code == 429 or e.code >= 500) or i == len(models) - 1:
-                raise
-            print(f"  {model} unavailable ({e.code}), trying {models[i + 1]}", file=sys.stderr)
-    text = (resp.text or "").strip()
+    text = generate(prompt, SYSTEM_PROMPT)
     cited = sorted({int(n) for n in re.findall(r"\[(\d+)\]", text) if 0 < int(n) <= len(chunks)})
     sources = [{"n": n, "title": chunks[n - 1]["title"], "url": chunks[n - 1]["url"],
                 "page": chunks[n - 1]["page"]} for n in cited]

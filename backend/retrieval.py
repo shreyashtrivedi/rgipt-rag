@@ -15,7 +15,7 @@ import chromadb
 from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
-from ingest import CHUNKS, CHROMA_DIR, COLLECTION, EMBED_MODEL, QUERY_PREFIX
+from ingest import CHUNKS, CHROMA_DIR, COLLECTION, EMBED_MODEL, QUERY_PREFIX, index_text
 
 CANDIDATES = 20   # how many results each retriever contributes before fusion
 RRF_K = 60        # standard RRF constant; higher = flatter weighting across ranks
@@ -44,7 +44,7 @@ class Retriever:
         self.pool = pool
         self.chunks = [json.loads(l) for l in open(CHUNKS, encoding="utf-8")]
         self.by_id = {c["id"]: c for c in self.chunks}
-        self.bm25 = BM25Okapi([tokenize(c["text"]) for c in self.chunks])
+        self.bm25 = BM25Okapi([tokenize(index_text(c)) for c in self.chunks])
         self.model = SentenceTransformer(EMBED_MODEL)
         self.col = chromadb.PersistentClient(path=str(CHROMA_DIR)).get_collection(COLLECTION)
         self.reranker = CrossEncoder(reranker, max_length=512) if reranker else None
