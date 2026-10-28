@@ -5,15 +5,17 @@
 
 golden.jsonl, one question per line:
   q       the question
-  urls    pages that contain the answer (a retrieved chunk "hits" if its URL ends with one)
+  urls    pages that contain the answer
   must    regexes (case-insensitive) that must ALL appear in a correct answer; use | for alternatives
+A retrieved chunk is a "hit" if its URL ends with one of `urls`, or if its text matches all of
+`must` (the same fact is often repeated on pages the test set doesn't list).
   refuse  true if the answer is NOT in the data and the bot should say it doesn't know
 """
 import re, sys, json, time, argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
-from retrieval import Retriever
+from retrieval import RERANK_MODEL, RERANK_POOL, Retriever
 
 GOLDEN = Path(__file__).resolve().parent / "golden.jsonl"
 REFUSAL = re.compile(
@@ -22,10 +24,12 @@ REFUSAL = re.compile(
     r"unable to|can(not|['’]t) (find|answer)|could(n['’]t| not) find", re.I)
 
 
-def first_hit(chunks, urls):
-    """1-based rank of the first chunk from an expected page, or None."""
+def first_hit(chunks, item):
+    """1-based rank of the first chunk that holds the answer, or None."""
     for rank, c in enumerate(chunks, 1):
-        if any(c["url"].endswith(u) for u in urls):
+        if any(c["url"].endswith(u) for u in item["urls"]):
+            return rank
+        if item.get("must") and all(re.search(p, c["text"], re.I) for p in item["must"]):
             return rank
     return None
 
@@ -43,10 +47,17 @@ def main():
     ap.add_argument("-k", type=int, default=6, help="chunks retrieved per question (default 6, same as the app)")
     ap.add_argument("--delay", type=float, default=6.0,
                     help="seconds between Gemini calls, to stay under free-tier per-minute limits")
+    ap.add_argument("--reranker", default=RERANK_MODEL or "none",
+                    help="cross-encoder model name (e.g. cross-encoder/ms-marco-MiniLM-L-6-v2), "
+                         "or 'none' for hybrid search only (default: same as the app)")
+    ap.add_argument("--pool", type=int, default=RERANK_POOL, help="candidates the reranker re-scores")
     args = ap.parse_args()
 
     items = [json.loads(l) for l in open(GOLDEN, encoding="utf-8") if l.strip()]
-    retriever = Retriever()
+    retriever = Retriever(reranker=None if args.reranker == "none" else args.reranker, pool=args.pool)
+    retriever.search("warm-up")   # first call is slow (model loading); keep it out of the timing
+    print(f"reranker: {args.reranker}  pool: {args.pool}\n")
+    search_time = 0.0
     if args.answers:
         from llm import answer
         from google.genai.errors import APIError
@@ -55,10 +66,12 @@ def main():
     retrieval_items = [it for it in items if it["urls"]]
     failures = []
     for i, item in enumerate(items, 1):
+        t = time.perf_counter()
         chunks = retriever.search(item["q"], k=args.k)
+        search_time += time.perf_counter() - t
         line = f"{i:2}. {item['q'][:60]:60}"
         if item["urls"]:
-            rank = first_hit(chunks, item["urls"])
+            rank = first_hit(chunks, item)
             hits += rank is not None
             rr += 1 / rank if rank else 0
             line += f"  retrieval: {'#' + str(rank) if rank else 'MISS':4}"
@@ -82,7 +95,8 @@ def main():
         print(line, flush=True)
 
     n = len(retrieval_items)
-    print(f"\nRetrieval hit@{args.k}: {hits}/{n} = {hits / n:.0%}   MRR: {rr / n:.3f}")
+    print(f"\nRetrieval hit@{args.k}: {hits}/{n} = {hits / n:.0%}   MRR: {rr / n:.3f}   "
+          f"avg search time: {search_time / len(items) * 1000:.0f} ms")
     if args.answers:
         print(f"Answer accuracy: {correct}/{answered} = {correct / answered:.0%}")
     if failures:
