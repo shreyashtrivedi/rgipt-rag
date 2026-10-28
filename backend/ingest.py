@@ -3,7 +3,7 @@
     python backend/ingest.py                  # with generated search questions (questions.py)
     python backend/ingest.py --no-questions   # no API calls
 
-Reads  data/processed/pages.json + data/raw/*.pdf
+Reads  data/processed/pages.json + data/raw/*.pdf (+ data/processed/ocr/ from ocr.py)
 Writes data/processed/chunks.jsonl  (all chunks, used for BM25 keyword search)
        chroma_db/                   (vector index, used for semantic search)
 Safe to re-run: the Chroma collection is rebuilt from scratch each time.
@@ -18,6 +18,7 @@ from sentence_transformers import SentenceTransformer
 ROOT = Path(__file__).resolve().parent.parent
 PAGES = ROOT / "data/processed/pages.json"
 CHUNKS = ROOT / "data/processed/chunks.jsonl"
+OCR_DIR = ROOT / "data/processed/ocr"    # transcriptions of scanned PDFs, written by ocr.py
 CHROMA_DIR = ROOT / "chroma_db"
 COLLECTION = "rgipt"
 
@@ -38,16 +39,32 @@ def clean(text):
     return "\n".join(l for l in lines if l)
 
 
+TABLE_SEPARATOR = re.compile(r"^\|[\s:|-]+\|$")   # the "| :--- | :--- |" row of a Markdown table
+
+
 def chunk_text(text):
-    """Split on line boundaries into ~CHUNK_CHARS pieces, with a small overlap."""
+    """Split on line boundaries into ~CHUNK_CHARS pieces, with a small overlap.
+    When a Markdown table (from OCR) is split, each continuation chunk starts with the table's
+    header rows instead, so the rows keep their column names (e.g. GEN vs SC/ST fees)."""
     chunks, cur = [], ""
+    table_head, prev, head_wants_row = None, "", False
     for line in text.split("\n"):
+        if not line.startswith("|"):
+            table_head = None
+        elif TABLE_SEPARATOR.match(line) and prev.startswith("|"):
+            table_head, head_wants_row = f"{prev}\n{line}", True
+        elif head_wants_row:                     # first row after the separator often holds
+            table_head, head_wants_row = f"{table_head}\n{line}", False   # the real column names
+        prev = line
         while len(line) > CHUNK_CHARS:           # a single giant line (e.g. a table dump)
             chunks.append(line[:CHUNK_CHARS])
             line = line[CHUNK_CHARS - OVERLAP_CHARS:]
         if cur and len(cur) + len(line) + 1 > CHUNK_CHARS:
             chunks.append(cur)
-            cur = cur[-OVERLAP_CHARS:].split("\n", 1)[-1]   # overlap, starting at a line break
+            if table_head and line.startswith("|"):
+                cur = table_head
+            else:
+                cur = cur[-OVERLAP_CHARS:].split("\n", 1)[-1]   # overlap, starting at a line break
         cur = f"{cur}\n{line}" if cur else line
     if cur:
         chunks.append(cur)
@@ -59,19 +76,39 @@ def html_sections(doc):
     return title, [(None, clean(doc["text"]))], False
 
 
+def pdf_text_pages(doc):
+    """[(page_no, text)] from the PDF's own text layer (empty for unreadable files)."""
+    try:
+        with pymupdf.open(ROOT / doc["file"]) as pdf:
+            return [(i + 1, clean(p.get_text())) for i, p in enumerate(pdf)]
+    except Exception as e:
+        print("  unreadable PDF:", doc["url"], e)
+        return []
+
+
+def is_scanned(pages):
+    return sum(len(t) for _, t in pages) < MIN_CHARS_PER_PAGE * max(1, len(pages))
+
+
+def ocr_pages(doc):
+    """[(page_no, text)] from ocr.py's transcription of a scanned PDF, or [] if there is none."""
+    f = OCR_DIR / f"{doc['id']}.md"
+    if not f.exists():
+        return []
+    parts = re.split(r"^=== Page (\d+) ===\s*$", f.read_text(encoding="utf-8"), flags=re.M)
+    if len(parts) == 1:                      # no page markers: treat as one section
+        return [(0, clean(parts[0]))]
+    return [(int(n), clean(t)) for n, t in zip(parts[1::2], parts[2::2])]
+
+
 def pdf_sections(doc):
     """Returns (title, [(page_no, text)], scanned)."""
     title = doc["label"] or Path(doc["url"]).stem
-    try:
-        with pymupdf.open(ROOT / doc["file"]) as pdf:
-            pages = [(i + 1, clean(p.get_text())) for i, p in enumerate(pdf)]
-    except Exception as e:
-        print("  unreadable PDF:", doc["url"], e)
-        pages = []
-    total = sum(len(t) for _, t in pages)
-    if total < MIN_CHARS_PER_PAGE * max(1, len(pages)):
-        # Scanned PDF: no usable text. Index its label so the bot can at least point to it.
-        # TODO: OCR these later.
+    pages = pdf_text_pages(doc)
+    if is_scanned(pages):
+        pages = ocr_pages(doc)
+    if is_scanned(pages):
+        # Scanned and not OCR'd (yet): index its label so the bot can at least point to it.
         stub = f"{title}\n(Scanned PDF document - text not extracted. Parent page: {doc['parent']})"
         return title, [(None, stub)], True
     return title, [(n, t) for n, t in pages if t], False
