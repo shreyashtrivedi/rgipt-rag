@@ -26,6 +26,9 @@ Rules:
 - Cite the passages you used with their numbers in square brackets, e.g. [1] or [2][4].
 - If the passages don't contain the answer, say so plainly in one sentence and, if a passage
   looks related (e.g. a scanned PDF or a page that links to documents), point the user to it.
+- Each passage says whether it is a current website page or a PDF document (with its date when
+  known). PDFs can be years old. When passages disagree (e.g. different people named for the
+  same post), trust the website page over a PDF, and a newer document over an older one.
 - Information may be outdated; if a passage is clearly for a specific year, mention the year.
 - Be concise: a short paragraph or a few bullet points. No preamble."""
 
@@ -43,11 +46,37 @@ def client():
     return _client
 
 
+DATE_PATTERNS = [
+    # upload timestamp: .../siteContent/202509101015457632... or .../C_202607131456537785.pdf
+    (re.compile(r"(?<!\d)(20[0-3]\d)(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{6,}"), "ymd"),
+    # date in the file name: ..._19-03-2021.pdf or ..._10092025.pdf
+    (re.compile(r"(0[1-9]|[12]\d|3[01])-?(0[1-9]|1[0-2])-?(20[0-3]\d)\.pdf$", re.I), "dmy"),
+]
+
+
+def pdf_date(url):
+    """Publication date of a PDF guessed from its URL ("YYYY-MM-DD"), or None.
+    Year-only names like EV_2025.pdf are skipped: there the year is a student batch."""
+    for pattern, order in DATE_PATTERNS:
+        m = pattern.search(url)
+        if m:
+            y, mo, d = m.groups() if order == "ymd" else m.groups()[::-1]
+            return f"{y}-{mo}-{d}"
+    return None
+
+
+def source_kind(chunk):
+    if chunk["type"] == "html":
+        return "website page (current)"
+    date = pdf_date(chunk["url"])
+    return f"PDF document dated {date}" if date else "PDF document (date unknown)"
+
+
 def format_context(chunks):
     blocks = []
     for i, c in enumerate(chunks, 1):
         src = c["url"] + (f" (page {c['page']})" if c["page"] else "")
-        blocks.append(f"[{i}] {c['title']}\nSource: {src}\n{c['text']}")
+        blocks.append(f"[{i}] {c['title']}\nSource: {src}\nType: {source_kind(c)}\n{c['text']}")
     return "\n\n---\n\n".join(blocks)
 
 
