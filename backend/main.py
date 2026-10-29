@@ -3,11 +3,11 @@
     .venv\\Scripts\\uvicorn main:app --app-dir backend --reload
     then open http://127.0.0.1:8000
 """
-import re, threading
-from collections import OrderedDict
+import re, time, threading
+from collections import OrderedDict, deque
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from google.genai import errors as genai_errors
 from pydantic import BaseModel, Field
@@ -49,6 +49,44 @@ class AnswerCache:
 
 cache = AnswerCache(CACHE_SIZE)
 
+# Per-visitor limits on questions that need a Gemini call (cached answers are free), so one
+# person can't use up the whole free-tier quota.
+LIMITS = [(8, 60, "a minute"), (100, 24 * 3600, "a day")]   # (max questions, window seconds, label)
+
+
+class RateLimiter:
+    def __init__(self, limits):
+        self.limits, self.longest = limits, max(w for _, w, _ in limits)
+        self.hits, self.lock = {}, threading.Lock()   # visitor -> deque of request times
+
+    def check(self, visitor):
+        """Records a request; returns an error message if the visitor is over a limit."""
+        now = time.time()
+        with self.lock:
+            times = self.hits.setdefault(visitor, deque())
+            while times and times[0] < now - self.longest:
+                times.popleft()
+            for n, window, label in self.limits:
+                if sum(t > now - window for t in times) >= n:
+                    return (f"You've reached the limit of {n} questions {label}. "
+                            f"Please wait a bit and try again.")
+            times.append(now)
+            if len(self.hits) > 10_000:               # forget visitors with no recent requests
+                self.hits = {v: t for v, t in self.hits.items() if t and t[-1] > now - self.longest}
+
+
+limiter = RateLimiter(LIMITS)
+
+
+def visitor_ip(request):
+    """Behind the Cloudflare tunnel every request arrives from the same local address, so use
+    the visitor IP Cloudflare puts in CF-Connecting-IP (or a proxy's X-Forwarded-For).
+    These headers can be faked by anyone who reaches the server directly, which is fine while
+    it's only exposed through the tunnel."""
+    h = request.headers
+    return (h.get("cf-connecting-ip") or h.get("x-forwarded-for", "").split(",")[0].strip()
+            or request.client.host)
+
 
 @asynccontextmanager
 async def lifespan(app):
@@ -80,10 +118,12 @@ def merge_sources(sources):
 # Plain `def` (not async): retrieval and the Gemini call are blocking, so FastAPI
 # runs this in a worker thread and the server stays responsive.
 @app.post("/api/ask")
-def ask(q: Question):
+def ask(q: Question, request: Request):
     question = q.question.strip()
     if cached := cache.get(question):
         return cached
+    if error := limiter.check(visitor_ip(request)):
+        raise HTTPException(429, error)
     chunks = retriever.search(question, k=TOP_K)
     try:
         result = answer(question, chunks)
