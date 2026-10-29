@@ -4,6 +4,7 @@
 """
 import os, re, sys
 
+import httpx
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -90,9 +91,11 @@ def generate(prompt, system, model=MODEL, temperature=0.2, json_output=False):
         try:
             resp = client().models.generate_content(model=m, contents=prompt, config=config)
             return (resp.text or "").strip()
-        except genai.errors.APIError as e:
-            if not (e.code == 429 or e.code >= 500) or i == len(models) - 1:
-                raise
+        except (genai.errors.APIError, httpx.TransportError) as e:
+            if isinstance(e, httpx.TransportError):   # dropped connection / timeout: like a 503,
+                e = genai.errors.ServerError(503, {"error": {"message": repr(e)}})   # so callers
+            if not (e.code == 429 or e.code >= 500) or i == len(models) - 1:    # handle one type
+                raise e
             print(f"  {m} unavailable ({e.code}), trying {models[i + 1]}", file=sys.stderr)
 
 
