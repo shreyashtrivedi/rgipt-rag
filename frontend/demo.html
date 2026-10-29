@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget Demo</title>
+<style>
+  body { margin: 0; font: 16px/1.6 Georgia, serif; color: #222; background: #fafafa; }
+  .top { background: #333; color: #fff; padding: 18px 24px; font: 600 20px system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 120px; }
+  code { display: block; padding: 12px; background: #eee; border-radius: 6px; overflow-x: auto;
+         font: 14px ui-monospace, Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="top">Any college web page</div>
+<main>
+  <h1>How the chat widget is added</h1>
+  <p>This page stands in for a page of the college website. The only change it needs to get the
+     chat button (bottom right) is this one line before <code style="display:inline;padding:2px 4px">&lt;/body&gt;</code>:</p>
+  <code>&lt;script src="https://YOUR-BOT-ADDRESS/widget.js" defer&gt;&lt;/script&gt;</code>
+  <p>The chat opens in a popup and does not change anything else on the page. On phones it opens full
+     screen. Answers come only from the public website content, with links to the sources.</p>
+</main>
+<script src="/widget.js" defer></script>
+</body>
+</html>

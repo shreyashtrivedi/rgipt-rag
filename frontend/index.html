@@ -50,9 +50,11 @@
                         color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
   button:disabled { opacity: .6; cursor: default; }
   .note { color: var(--muted); font-size: 12px; text-align: center; margin-top: 6px; }
+  .embed header { display: none; }   /* inside widget.js's popup, which has its own title bar */
 </style>
 </head>
 <body>
+<script>if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");</script>
 <header>
   <div class="wrap">
     <h1>RGIPT Assistant</h1>
