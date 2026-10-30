@@ -29,7 +29,8 @@ RERANK_MODEL = None
 RERANK_POOL = 15  # how many fused candidates the reranker re-scores
 # At most this many chunks from one URL in the results, so a long document whose chunks all
 # match the query (e.g. a placement *policy* PDF) can't crowd out the page with the answer.
-MAX_PER_URL = 2
+# PDFs get the lower limit: 2 for web pages dropped the "Maximum Intake 04" chunk of Study in India.
+MAX_PER_URL = {"html": 3, "pdf": 2}
 
 STOPWORDS = set("""a an the is are was were be been of in on at to for from by with and or
 not what which who whom how when where why do does did can could i me my we our you your
@@ -83,7 +84,7 @@ class Retriever:
         best, per_url = [], {}
         for cid in ranked_ids:
             url = self.by_id[cid]["url"]
-            if per_url.get(url, 0) < MAX_PER_URL:
+            if per_url.get(url, 0) < MAX_PER_URL[self.by_id[cid]["type"]]:
                 per_url[url] = per_url.get(url, 0) + 1
                 best.append(cid)
                 if len(best) == k:
