@@ -23,7 +23,7 @@ COPY data/processed/chunks.jsonl data/processed/chunks.jsonl
 COPY chroma_db chroma_db
 
 # Run as a normal user; it needs write access to chroma_db (Chroma keeps a lock file there)
-RUN useradd --create-home app && chown -R app /app
+RUN useradd --create-home app && mkdir stats && chown -R app /app
 USER app
 
 # GEMINI_API_KEY is passed at run time (docker run --env-file .env), never baked in.

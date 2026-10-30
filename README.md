@@ -36,6 +36,33 @@ docker compose up --build       # then open http://localhost:8000
 
 The API key is read from `.env` when the container starts; it is never copied into the image.
 
+## Sharing a public demo link
+
+Free option, no account needed. The bot stays on this computer, so the link only works while
+the computer, Docker and this command are running, and the address changes each time:
+
+```
+cloudflared tunnel --url http://localhost:8000
+```
+
+Hugging Face Docker Spaces now need a paid plan, so `deploy_hf.py` only works on a PRO account.
+
+## Adding the chat to a website
+
+One line before `</body>` adds an "Ask RGIPT" button that opens the chat in a popup:
+
+```html
+<script src="https://YOUR-BOT-ADDRESS/widget.js" defer></script>
+```
+
+`/demo` shows it on a sample page.
+
+## Limits and usage
+
+- Repeat questions are answered from an in-memory cache and use no Gemini quota.
+- New questions are limited per visitor to 8 a minute and 100 a day (`LIMITS` in `backend/main.py`).
+- `/api/health` shows usage totals. Only counts are kept, never questions or visitor details.
+
 Each step can also be tested on its own:
 
 ```

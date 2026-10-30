@@ -5,4 +5,9 @@ services:
     ports:
       - "8000:8000"
     env_file: .env          # GEMINI_API_KEY (and optionally GEMINI_MODEL)
+    volumes:
+      - stats:/app/stats    # usage totals survive rebuilds
     restart: unless-stopped
+
+volumes:
+  stats:

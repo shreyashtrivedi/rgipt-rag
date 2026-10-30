@@ -3,8 +3,8 @@
     .venv\\Scripts\\uvicorn main:app --app-dir backend --reload
     then open http://127.0.0.1:8000
 """
-import re, time, threading
-from collections import OrderedDict, deque
+import re, json, time, threading
+from collections import Counter, OrderedDict, deque
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -18,7 +18,28 @@ from retrieval import Retriever
 
 TOP_K = 6
 CACHE_SIZE = 1000   # answers kept in memory; a restart (e.g. a redeploy with a new index) clears them
+STATS_FILE = ROOT / "stats/usage.json"
 retriever = None
+
+
+class Usage:
+    """Running totals for /api/health, saved so they survive restarts. Counts only: no question
+    text or visitor details are ever stored."""
+
+    def __init__(self, path):
+        self.path, self.lock = path, threading.Lock()
+        self.counts = Counter(json.loads(path.read_text()) if path.exists() else {})
+
+    def add(self, name):
+        with self.lock:
+            self.counts[name] += 1
+            self.path.parent.mkdir(exist_ok=True)
+            tmp = self.path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self.counts))
+            tmp.replace(self.path)   # a crash mid-write can't corrupt the saved totals
+
+
+usage = Usage(STATS_FILE)
 
 
 class AnswerCache:
@@ -121,23 +142,28 @@ def merge_sources(sources):
 def ask(q: Question, request: Request):
     question = q.question.strip()
     if cached := cache.get(question):
+        usage.add("answered_from_cache")
         return cached
     if error := limiter.check(visitor_ip(request)):
+        usage.add("rate_limited")
         raise HTTPException(429, error)
     chunks = retriever.search(question, k=TOP_K)
     try:
         result = answer(question, chunks)
     except genai_errors.APIError as e:   # errors are not cached, so a retry can succeed
         print("Gemini error:", e)
+        usage.add("failed")
         raise HTTPException(503, "The AI service is busy right now. Please try again in a minute.")
     response = {"answer": result["answer"], "sources": merge_sources(result["sources"])}
     cache.put(question, response)
+    usage.add("answered")
     return response
 
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "chunks": len(retriever.chunks), "cached_answers": len(cache.items)}
+    return {"ok": True, "chunks": len(retriever.chunks), "cached_answers": len(cache.items),
+            "usage": usage.counts}
 
 
 @app.get("/")
