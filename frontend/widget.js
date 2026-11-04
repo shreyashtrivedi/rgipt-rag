@@ -10,15 +10,15 @@
   var css = document.createElement("style");
   css.textContent = [
     "#rgipt-chat-btn{position:fixed;right:20px;bottom:20px;z-index:2147483646;border:0;",
-    "border-radius:999px;padding:12px 18px;background:#1f5fbf;color:#fff;cursor:pointer;",
+    "border-radius:8px;padding:12px 18px;background:#b13a0a;color:#fff8f0;cursor:pointer;",
     "font:600 15px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25)}",
     "#rgipt-chat-box{position:fixed;right:20px;bottom:80px;z-index:2147483647;width:380px;height:560px;",
-    "max-height:calc(100vh - 100px);display:none;flex-direction:column;border-radius:14px;overflow:hidden;",
-    "background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.3)}",
+    "max-height:calc(100vh - 100px);display:none;flex-direction:column;border-radius:10px;overflow:hidden;",
+    "background:#f4efe6;box-shadow:0 8px 30px rgba(0,0,0,.3)}",
     "#rgipt-chat-box.open{display:flex}",
     "#rgipt-chat-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;",
-    "background:#1f5fbf;color:#fff;font:600 15px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
-    "#rgipt-chat-bar button{border:0;background:none;color:#fff;font-size:22px;line-height:1;cursor:pointer}",
+    "background:#2a2320;color:#f4efe6;font:600 15px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
+    "#rgipt-chat-bar button{border:0;background:none;color:#f4efe6;font-size:22px;line-height:1;cursor:pointer}",
     "#rgipt-chat-box iframe{flex:1;border:0;width:100%}",
     "@media (max-width:480px){#rgipt-chat-box{right:0;bottom:0;width:100%;height:100%;max-height:none;border-radius:0}}"
   ].join("");

@@ -4,83 +4,169 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RGIPT Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* The look is a geological core sample: rock layers at the foot of the page, a drill while
+     searching, and answers set out like a field log. */
   :root {
-    --bg: #f5f6f8; --panel: #ffffff; --text: #1d2330; --muted: #667085;
-    --accent: #0b4f8a; --accent-text: #ffffff; --user-bg: #0b4f8a; --border: #e2e5ea;
-    --bot-bg: #ffffff; --src-bg: #f0f4f9;
+    --bg: #f4efe6; --panel: #fbf8f2; --text: #1f1b16; --muted: #6a6155; --line: #d8cfbf;
+    --accent: #b13a0a; --accent-text: #fff8f0; --error: #a61b1b;
+    --sand: #e4cfa3; --ochre: #c9974b; --rust: #99552e; --shale: #5a4a42; --tar: #2a2320;
+    --serif: Fraunces, Georgia, "Times New Roman", serif;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #12151b; --panel: #1a1f27; --text: #e6e8ec; --muted: #98a2b3;
-      --accent: #4c9be8; --accent-text: #0b1220; --user-bg: #1f4f7f; --border: #2a313c;
-      --bot-bg: #1a1f27; --src-bg: #222936;
+      --bg: #15120f; --panel: #1f1a16; --text: #f1e9dc; --muted: #a89c8b; --line: #3a322a;
+      --accent: #f0883e; --accent-text: #1c1007; --error: #ff8a80;
+      --sand: #6f5a3a; --ochre: #8a6330; --rust: #6e3d22; --shale: #43362f; --tar: #0d0b09;
     }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-         display: flex; flex-direction: column; height: 100dvh; }
-  header { padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--panel); }
-  header h1 { margin: 0; font-size: 17px; }
-  header p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
-  #chat { flex: 1; overflow-y: auto; padding: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans);
+         display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
   .wrap { max-width: 760px; margin: 0 auto; }
-  .msg { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; max-width: 88%;
-         overflow-wrap: anywhere; }
-  .user { background: var(--user-bg); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
-  .bot { background: var(--bot-bg); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-  .bot ul { margin: 6px 0; padding-left: 20px; }
-  .bot p { margin: 0 0 6px; }
-  .bot p:last-child { margin: 0; }
-  .cite { font-size: 11px; vertical-align: super; color: var(--accent); text-decoration: none; }
-  .sources { margin-top: 10px; padding: 8px 10px; background: var(--src-bg); border-radius: 8px; font-size: 13px; }
-  .sources div { margin: 2px 0; }
-  .sources a { color: var(--accent); }
-  .error { color: #c0392b; }
-  .thinking { color: var(--muted); font-style: italic; }
-  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .suggestions button { border: 1px solid var(--border); background: var(--panel); color: var(--text);
-                        border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: 13px; }
-  form { border-top: 1px solid var(--border); background: var(--panel); padding: 12px 16px; }
-  form .wrap { display: flex; gap: 8px; }
-  input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
-          background: var(--bg); color: var(--text); font: inherit; }
-  button[type=submit] { padding: 10px 18px; border: 0; border-radius: 10px; background: var(--accent);
-                        color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+         padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  .mark { display: flex; align-items: center; gap: 10px; font: 600 18px var(--serif); }
+  .glyph { width: 20px; height: 20px; border-radius: 50%; flex: none;
+           background: linear-gradient(var(--sand) 0 30%, var(--ochre) 0 55%, var(--rust) 0 78%, var(--tar) 0); }
+  .top small { color: var(--muted); font: 12px var(--mono); text-align: right; }
+
+  #chat { flex: 1; overflow-y: auto; padding: 0 20px; position: relative; }
+  #log { padding: 24px 0; }
+
+  .hero { padding: clamp(16px, 7vh, 72px) 0 16px; }
+  .kicker { margin: 0 0 14px; color: var(--accent); font: 500 12px var(--mono);
+            letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { margin: 0; font: 400 clamp(38px, 8vw, 68px)/1.04 var(--serif); letter-spacing: -.02em; }
+  .hero h1 em { color: var(--accent); }
+  .lede { margin: 16px 0 28px; color: var(--muted); max-width: 52ch; }
+  .suggestions { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line); }
+  .suggestions button { display: block; padding: 14px 16px 14px 0; background: none; border: 0;
+                        border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; }
+  .suggestions small { display: block; color: var(--muted); font: 11px var(--mono);
+                       letter-spacing: .06em; text-transform: uppercase; }
+  .suggestions span { font-weight: 500; }
+  .suggestions button:hover span { color: var(--accent); }
+
+  /* Each question and answer sits on one bored "well line" running down the log */
+  .msg { position: relative; padding-left: 48px; overflow-wrap: anywhere; animation: rise .3s ease-out; }
+  .msg::before { content: ""; position: absolute; left: 15px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .user { padding-top: 22px; padding-bottom: 8px; font: 400 clamp(21px, 4vw, 26px)/1.3 var(--serif); }
+  .user:first-child { padding-top: 0; }
+  .num { position: absolute; left: 0; top: 24px; z-index: 1; width: 31px; padding: 2px 0; background: var(--bg);
+         color: var(--accent); font: 500 12px var(--mono); text-align: center; }
+  .user:first-child .num { top: 2px; }
+  .bot { padding-bottom: 14px; }
+  .bot ul { margin: 6px 0 10px; padding-left: 20px; }
+  .bot li { margin: 3px 0; }
+  .bot p { margin: 0 0 10px; }
+  .cite { display: inline-block; min-width: 18px; margin: 0 1px; padding: 0 4px; border-radius: 3px;
+          background: var(--accent); color: var(--accent-text); font: 500 11px/17px var(--mono);
+          text-align: center; text-decoration: none; vertical-align: 2px; }
+  .sources { margin-top: 14px; border-top: 1px solid var(--line); }
+  .sources h2 { margin: 10px 0 2px; color: var(--muted); font: 500 11px var(--mono);
+                letter-spacing: .08em; text-transform: uppercase; }
+  .src { display: flex; gap: 10px; align-items: baseline; margin: 0 -8px; padding: 5px 8px; border-radius: 4px; font-size: 14px; }
+  .src:has(span:target) { background: var(--panel); box-shadow: inset 2px 0 var(--accent); }
+  .src b { flex: none; color: var(--accent); font: 500 12px var(--mono); }
+  .src a { color: inherit; text-underline-offset: 2px; text-decoration-color: var(--ochre); }
+  .src a:hover { color: var(--accent); }
+  .src i { flex: none; margin-left: auto; color: var(--muted); font: 11px var(--mono); }
+  .error { color: var(--error); }
+
+  .drill { display: flex; align-items: center; gap: 12px; color: var(--muted); font: 13px var(--mono); }
+  .bore { position: relative; width: 30px; height: 34px; border-radius: 3px; overflow: hidden; flex: none;
+          background: linear-gradient(var(--sand) 0 25%, var(--ochre) 0 50%, var(--rust) 0 75%, var(--shale) 0); }
+  .bore::after { content: ""; position: absolute; left: 50%; top: 0; width: 3px; height: 100%; margin-left: -1.5px;
+                 background: var(--tar); transform-origin: top; animation: bore 1.5s ease-in-out infinite; }
+  @media (prefers-color-scheme: dark) { .bore::after { background: var(--text); } }
+
+  form { padding: 12px 20px 8px; }
+  .ask { display: flex; gap: 8px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .ask:focus-within { border-color: var(--accent); }
+  input { flex: 1; min-width: 0; padding: 8px 10px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; }
+  input:focus-visible { outline: 0; }   /* .ask:focus-within shows the focus instead */
+  input::placeholder { color: var(--muted); }
+  button[type=submit] { flex: none; padding: 8px 18px; border: 0; border-radius: 5px; background: var(--accent);
+                        color: var(--accent-text); font-weight: 600; cursor: pointer; }
   button:disabled { opacity: .6; cursor: default; }
   .note { color: var(--muted); font-size: 12px; text-align: center; margin-top: 6px; }
-  .embed header { display: none; }   /* inside widget.js's popup, which has its own title bar */
+
+  .ground { display: block; flex: none; width: 100%; height: clamp(40px, 13vh, 110px); transition: height .4s ease; }
+  .started .ground { height: 18px; }
+
+  @keyframes bore { from { transform: scaleY(0); } 70%, to { transform: scaleY(1); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .msg, .bore::after { animation: none; }
+    .ground { transition: none; }
+  }
+  @media (max-width: 560px) {
+    .hero { padding-top: 4px; }
+    .lede { margin-bottom: 14px; }
+    .suggestions { grid-template-columns: 1fr; }
+    .suggestions button { padding: 8px 0; }
+    .ground { height: 28px; }
+    .top small { max-width: 16ch; }
+    #chat { padding: 0 16px; }
+    form { padding: 10px 16px 6px; }
+  }
+  /* inside widget.js's popup, which has its own title bar */
+  .embed .top { display: none; }
+  .embed .hero { padding-top: 0; }
+  .embed .hero h1 { font-size: 34px; }
+  .embed .lede { margin: 10px 0 16px; font-size: 14px; }
+  .embed .suggestions { grid-template-columns: 1fr; }
+  .embed .suggestions button { padding: 9px 0; }
+  .embed .ground { height: 12px; }
 </style>
 </head>
 <body>
 <script>if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");</script>
-<header>
-  <div class="wrap">
-    <h1>RGIPT Assistant</h1>
-    <p>Answers from rgipt.ac.in, with sources. Student project, not an official RGIPT service.</p>
-  </div>
+<header class="top">
+  <div class="mark"><span class="glyph" aria-hidden="true"></span>RGIPT Assistant</div>
+  <small>Student project, not an official RGIPT service</small>
 </header>
 
-<main id="chat"><div class="wrap" id="log">
-  <div class="msg bot">
-    <p>Hi! Ask me about admissions, programs, campus life, placements or anything else on the RGIPT website.</p>
+<main id="chat"><div class="wrap" id="log" aria-live="polite">
+  <section class="hero" id="hero">
+    <p class="kicker">Answers from rgipt.ac.in, with sources</p>
+    <h1>Dig up anything<br>about <em>RGIPT.</em></h1>
+    <p class="lede">Ask about admissions, programs, campus life, placements or anything else on the college website.</p>
     <div class="suggestions">
-      <button>Who is the director of RGIPT?</button>
-      <button>How do I get admission to M.Tech?</button>
-      <button>What B.Tech programs are offered?</button>
-      <button>What facilities do the hostels have?</button>
+      <button><small>People</small><span>Who is the director of RGIPT?</span></button>
+      <button><small>Admissions</small><span>How do I get admission to M.Tech?</span></button>
+      <button><small>Programs</small><span>What B.Tech programs are offered?</span></button>
+      <button><small>Campus</small><span>What facilities do the hostels have?</span></button>
     </div>
-  </div>
+  </section>
 </div></main>
 
 <form id="form">
   <div class="wrap">
-    <input id="q" autocomplete="off" maxlength="500" placeholder="Ask a question…" autofocus>
-    <button type="submit">Ask</button>
+    <div class="ask">
+      <input id="q" autocomplete="off" maxlength="500" placeholder="Ask a question…" aria-label="Your question" autofocus>
+      <button type="submit">Ask</button>
+    </div>
+    <div class="note">Answers can be incomplete or outdated. Always verify important details on the official website.</div>
   </div>
-  <div class="note">Answers can be incomplete or outdated. Always verify important details on the official website.</div>
 </form>
+
+<svg class="ground" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+  <rect width="1200" height="120" fill="var(--sand)"/>
+  <path fill="var(--ochre)" d="M0 34C160 12 300 46 470 32S800 8 960 28s180 12 240 0V120H0Z"/>
+  <path fill="var(--rust)" d="M0 62C190 44 330 78 520 60S830 42 1000 64c90 10 150 4 200-6V120H0Z"/>
+  <path fill="var(--shale)" d="M0 86C150 76 340 100 560 84S900 72 1200 90V120H0Z"/>
+  <path fill="var(--tar)" d="M0 106C240 96 420 114 650 104S1000 98 1200 108V120H0Z"/>
+</svg>
 
 <script>
 const log = document.getElementById("log");
@@ -99,7 +185,7 @@ function render(text, msgId) {
     let line = esc(raw.trim());
     if (!line) continue;
     line = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-               .replace(/\[(\d+)\]/g, `<a class="cite" href="#${msgId}-src-$1">[$1]</a>`);
+               .replace(/\[(\d+)\]/g, `<a class="cite" href="#${msgId}-src-$1" aria-label="Source $1">$1</a>`);
     const bullet = line.match(/^[*-]\s+(.*)/);
     if (bullet) {
       if (!inList) { html += "<ul>"; inList = true; }
@@ -117,14 +203,17 @@ function add(cls, html) {
   div.className = "msg " + cls;
   div.innerHTML = html;
   log.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
   return div;
 }
 
 let count = 0;
 async function ask(question) {
-  add("user", esc(question));
-  const pending = add("bot", '<span class="thinking">Searching the RGIPT website…</span>');
+  document.getElementById("hero")?.remove();
+  document.body.classList.add("started");
+  const n = String(count + 1).padStart(2, "0");
+  const asked = add("user", `<span class="num">${n}</span>${esc(question)}`);
+  const pending = add("bot", '<div class="drill"><span class="bore" aria-hidden="true"></span>Searching the RGIPT website…</div>');
+  chat.scrollTop = chat.scrollHeight;
   const btn = form.querySelector("button[type=submit]");
   btn.disabled = true;
   try {
@@ -137,10 +226,11 @@ async function ask(question) {
     const id = "m" + (++count);
     let html = render(data.answer, id);
     if (data.sources.length) {
-      html += '<div class="sources"><strong>Sources</strong>' + data.sources.map(s => {
+      html += '<div class="sources"><h2>Sources</h2>' + data.sources.map(s => {
         const anchors = s.ns.map(n => `<span id="${id}-src-${n}"></span>`).join("");
         const label = esc(s.title) + (s.page ? ` (p. ${s.page})` : "");
-        return `<div>${anchors}[${s.ns.join(", ")}] <a href="${esc(s.url)}" target="_blank" rel="noopener">${label}</a></div>`;
+        const kind = /\.pdf($|[?#])/i.test(s.url) ? "PDF" : "Web";
+        return `<div class="src">${anchors}<b>${s.ns.join(", ")}</b><a href="${esc(s.url)}" target="_blank" rel="noopener">${label}</a><i>${kind}</i></div>`;
       }).join("") + "</div>";
     }
     pending.innerHTML = html;
@@ -148,7 +238,7 @@ async function ask(question) {
     pending.innerHTML = `<span class="error">${esc(e.message)}</span>`;
   }
   btn.disabled = false;
-  chat.scrollTop = chat.scrollHeight;
+  chat.scrollTop = asked.offsetTop - 16;   // start of the answer, not the end of a long one
   input.focus();
 }
 
@@ -161,7 +251,7 @@ form.addEventListener("submit", e => {
 });
 
 document.querySelectorAll(".suggestions button").forEach(b =>
-  b.addEventListener("click", () => ask(b.textContent)));
+  b.addEventListener("click", () => ask(b.querySelector("span").textContent)));
 </script>
 </body>
 </html>
